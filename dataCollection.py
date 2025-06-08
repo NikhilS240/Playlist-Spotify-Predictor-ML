@@ -122,7 +122,7 @@ def my_function(name):
                         artist_frequency[spec_artist_name] += 1
 
 
-                    # Genres indices
+                 
                     if artist_genres:
                         for genre in set(artist_genres):
                             if genre in list_of_genres:
@@ -216,7 +216,7 @@ def my_function(name):
             batch_genres = torch.stack([ds[i]['genre'] for i in range(batch_size)])  # shape: (batch_size, num_genres)
             batch_artists = torch.stack([ds[i]['artist'] for i in range(batch_size)])  # shape: (batch_size, num_artists)
 
-            # Pass through embedding layers
+ 
             genre_embeddings = genre_emb_layer(batch_genres)  # shape: (batch_size, embedding_dim)
             artist_embeddings = artist_emb_layer(batch_artists)  # shape: (batch_size, embedding_dim)
 
@@ -230,7 +230,7 @@ def my_function(name):
             batch_length = torch.tensor([ds[i]['length'] for i in range(batch_size)], dtype=torch.float32).unsqueeze(1)
             batch_years_old = torch.tensor([ds[i]['years_old'] for i in range(batch_size)], dtype=torch.float32).unsqueeze(1)
 
-            # Concatenate all features
+ 
             combined_features = torch.cat([
                 genre_embeddings,
                 artist_embeddings,
@@ -274,12 +274,12 @@ def my_function(name):
 
             #might need to make this loop for all elements 
 
-            # Classification loss (album_type: 0, 1, or 2)
+       
             lossClass = nn.CrossEntropyLoss()
             targetClass = torch.tensor([ds[i]['album'] for i in range(batch_size)], dtype=torch.long)
             outputClass = lossClass(class_out, targetClass)
 
-            # Regression loss (popularity, length, years_old)
+           
             lossNum = nn.MSELoss()
             targetNum = torch.tensor([
                 [ds[i]['popularity'], ds[i]['length'], ds[i]['years_old']]
@@ -330,7 +330,7 @@ def my_function(name):
                     class_out = output[:, :3]
                     reg_out = output[:, 3:]
 
-                    # Targets
+               
                     target_class = batch['album']
                     target_reg = torch.stack([
                         batch['popularity'],
@@ -338,7 +338,7 @@ def my_function(name):
                         batch['years_old']
                     ], dim=1)
 
-                    # Compute loss
+                
                     loss_class = lossClass(class_out, target_class)
                     loss_reg = lossNum(reg_out, target_reg)
                     loss = loss_class + loss_reg
@@ -386,13 +386,13 @@ def my_function(name):
                     output = model(combined)  # (batch_size, 6)
                     all_outputs.append(output)
 
-                # Concatenate all batch outputs into one tensor
+             
                 all_outputs = torch.cat(all_outputs, dim=0)  # (total_dataset_size, 6)
 
             #.#print("Final output vectors for all dataset items:")
             #.#print(all_outputs)
 
-            # Optionally, calculate the mean vector across all outputs
+           
             mean_output = torch.mean(all_outputs, dim=0)
             #.#print("Mean of all output vectors:")
             #.#print(mean_output)
@@ -403,30 +403,29 @@ def my_function(name):
 
 
 
-            mean_class = mean_output[:3]      # logits for album_type classification
-            mean_reg = mean_output[3:]        # predicted values: popularity, length, years_old
-
-            # Predicted album type
-            predicted_album_type = torch.argmax(mean_class).item()  # 0 or 1 or 2
-
+            mean_class = mean_output[:3]    
+            mean_reg = mean_output[3:]        
+  
+            predicted_album_type = torch.argmax(mean_class).item()  
 
 
-            predicted_popularity = mean_reg[0].item() * 100  # since we normalized it earlier
+
+            predicted_popularity = mean_reg[0].item() * 100  
             
-            predicted_length = mean_reg[1].item() * 600000   # convert back from 0–1 scale
+            predicted_length = mean_reg[1].item() * 600000  
             predicted_length = abs(predicted_length)
-            predicted_years_old = mean_reg[2].item() * 10    # undo /10
+            predicted_years_old = mean_reg[2].item() * 10   
             predicted_release_year = datetime.now().year - int(predicted_years_old)
             predicted_release_year = abs(predicted_release_year)
             predicted_popularity = abs(predicted_popularity)
 
 
 
-            # Get average genre and artist activation
+          
             avg_genre_weights = torch.mean(torch.stack([ds[i]['genre'] for i in range(len(ds))]), dim=0)
             avg_artist_weights = torch.mean(torch.stack([ds[i]['artist'] for i in range(len(ds))]), dim=0)
 
-            # Find top 3 genres and artists
+ 
             if avg_genre_weights.numel() >= 3:
                 top_genre_indices = torch.topk(avg_genre_weights, 3).indices.tolist()
             else:
@@ -456,19 +455,6 @@ def my_function(name):
             print("Predicted Genres:", predicted_genres)
             print("Predicted Artists:", predicted_artists)
 
-
-
-
-            # results = sp.search(q=predicted_artists[0], type='artist', limit=1)
-
-
-            # print(results)
-
-
-            #take the three artists 
-
-            #base the 10 onnthe number of iterations (3 matches 3 choices 2 2 choice etc)
-            # randTen = math.floor(random.random() * 10) + 1
 
 
             match = []
@@ -513,7 +499,6 @@ def my_function(name):
             totalSum = sum(match)
             randTen = random.random() * totalSum
 
-            #before i had a floor 
 
 
 
@@ -553,8 +538,6 @@ def my_function(name):
                 albumChance = 0.9
 
 
-            #print a number from 0 to 1 if its greater than x use an album and if not dont???
-
             randAlbum = random.random()
             #.#print(randAlbum)
                             
@@ -570,7 +553,7 @@ def my_function(name):
             while True:
                 batch = sp.artist_albums(artist_idx, album_type=album_type, limit=50, offset=offset)
                 items = batch['items']
-                albums += items  # Append, don’t overwrite
+                albums += items 
                 if len(items) < 50:
                     break
                 offset += 50
@@ -578,9 +561,6 @@ def my_function(name):
 
 
 
-            # for album in albums:
-
-                # print(album['name'])
 
             release = album["release_date"]
 
@@ -593,10 +573,9 @@ def my_function(name):
             j = 0
 
 
-            ##does not work is no songs exist within this range!!!!!!!!!
 
-            
-            # max attempts to avoid infinite loop
+
+
             i = 1
             max_i = 5  # maximum number of expansions
             albums_found = False
@@ -618,7 +597,7 @@ def my_function(name):
                     for name in matched_albums:
 
 
-                        ##i think name is used as a placeholder but actually does hold the values here i need this to append when working with singles to the thing
+                      
 
                         #.#print(name)
                         if album_type == 'single':
@@ -640,7 +619,7 @@ def my_function(name):
 
 
 
-            ##prints the tracks if album is selected and append to album_songs
+ 
             if album_type == 'album':
                 for album_obj in matched_albums:
                     album_name = album_obj['name']  # extract string name (just added this)
@@ -660,7 +639,7 @@ def my_function(name):
 
 
 
-            #limit to like 5 songs best meeting the distribution and then pick one at random
+        
             predicted_length
             predicted_popularity
 
@@ -741,7 +720,7 @@ def my_function(name):
             query = f"track:{d[num][1]} artist:{artist_name}"
             results = sp.search(q=query, type='track', limit=1)
 
-            # Get the track ID and create the Spotify URL
+    
             if results['tracks']['items']:
                 track = results['tracks']['items'][0]
                 track_id = track['id']
@@ -834,27 +813,3 @@ while Running:
         
 
   
-
-    #########
-    # Ideas for the future of the project (without leaving terminal):
-    #     - Ability to get more than 1 song per request - NOT NEEDED
-    #     - A menu for users to do what they want (all the functions w this) - DONNEEE
-    #     - Aniility to add songs and store them locally (like by id) - DONNE
-    #     - remove duplicate songs if given by program DONNE???
-    #     - remove comments from program and things which are poutputed
-    #     - check accuracy
-    # - Better/cleaner output ofr the song
-        #error checking
-        ##1 exits when false
-        # - k percession
-
-
-
-        ##WHAT TO DO:
-        # - more than 1 song (1 - 3 songs)
-        # - remove intermediate steps from program output - DONE
-        # - check accuracy
-
-
-
-    #with frontend we could obv make the frotnend and make a flask/django server to host it or host the data of saved songs
