@@ -1,7 +1,10 @@
 
 # Spotify Song Attribute Predictor
 
-This project collects Spotify playlist data and extracts features like genres, artists, album types, popularity, length, and release year. It trains a simple neural network to predict likely attributes of the next songs you might enjoy. The model outputs predictions for album type, popularity, length, release year, and top genres and artists.
+This project collects Spotify playlist data and extracts features like genres, artists, album types, popularity, length, and release year. It trains a simple neural network to predict likely attributes of the next songs you might enjoy. The model outputs predictions for album type, popularity, length, release year, and top genres and artists. One will also require an API Key and create a .env file for the Spotify API to work. The format is:
+
+client_id = 'YOUR CLIENT ID'
+client_secret = 'YOUR CLIENT SECRET'
 
 ## Libraries Required
 
