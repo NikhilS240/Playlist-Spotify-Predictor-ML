@@ -687,7 +687,10 @@ def my_function(name):
 
             while Song:
                 for song in track_compare:
-                    if (d[num][1]).strip() == (song).strip():
+                    if num < len(d) and len(d[num]) > 1 and d[num][1].strip() == song.strip():
+
+
+
                         print("The same")
                         num = num + 1
                         break
@@ -699,15 +702,33 @@ def my_function(name):
             #some randomization herer is needed!!!!!!!!!!!!!!!!!
 
             
-      
-            song_name = d[num][1]
+            
+            song_name = None  # Default value to prevent UnboundLocalError
+
+            try:
+                if num < len(d):
+                    entry = d[num]
+
+                    if isinstance(entry, (list, tuple)):
+                        if len(entry) > 1:
+                            song_name = entry[1].strip()  # Optional: strip whitespace
+                        else:
+                            print(f"d[{num}] has fewer than 2 elements: {entry}")
+                    else:
+                        print(f"d[{num}] is not a list or tuple: {entry}")
+                else:
+                    print(f"num ({num}) is out of range (len(d) = {len(d)})")
+            except Exception as e:
+                print(f"Unexpected error when accessing d[{num}]: {e}")
+
+
 
             query = f"artist:{artist_name} track:{song_name}"
             result = sp.search(q=query, type='track', limit=1)
             items = result['tracks']['items']
 
             if not items:
-                print("No matching track found.")
+                print("No matching track found. Try another playlist.")
             else:
                 track = items[0]
                 album_nameGood = track['album']['name']
@@ -715,9 +736,17 @@ def my_function(name):
 
 
 
-            print(d[num][1] + " by " + artist_name + " on " + album_nameGood)
+            if song_name:
+                print(song_name + " by " + artist_name + " on " + album_nameGood)
+            else:
+                print(f"Skipping print: song_name could not be set for d[{num}]")
 
-            query = f"track:{d[num][1]} artist:{artist_name}"
+
+            if song_name:
+                query = f"track:{song_name} artist:{artist_name}"
+            else:
+                print("No valid song_name available to build query.")
+
             results = sp.search(q=query, type='track', limit=1)
 
     
