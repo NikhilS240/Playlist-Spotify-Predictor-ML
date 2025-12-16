@@ -4,3 +4,4 @@ python-dotenv
 spotipy
 torch
 requests
+gunicorn
