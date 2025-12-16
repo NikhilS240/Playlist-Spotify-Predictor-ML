@@ -39,7 +39,8 @@ client_id = os.getenv("client_id")
 client_secret = os.getenv("client_secret")
 
 # NEW: OAuth setup
-REDIRECT_URI = 'http://127.0.0.1:5000/callback'
+REDIRECT_URI = os.getenv('REDIRECT_URI', 'http://127.0.0.1:5000/callback')
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://127.0.0.1:3000')
 user_tokens = {}  # Store user tokens
 
 # REMOVED: Global sp client - now created per user
@@ -770,7 +771,7 @@ def my_function(name, sp):  # CHANGED: Added sp parameter
 
 app = Flask(__name__)
 app.secret_key = secrets.token_urlsafe(32)
-CORS(app, supports_credentials=True, origins=['http://127.0.0.1:3000'])
+CORS(app, supports_credentials=True, origins=[FRONTEND_URL])
 
 # NEW: Login route
 @app.route('/login')
@@ -796,7 +797,7 @@ def callback():
     code = request.args.get('code')
     
     if not code:
-        return redirect('http://127.0.0.1:3000?error=access_denied')
+        return redirect(f'{FRONTEND_URL}?error=access_denied')
     
     # Exchange code for access token
     auth_string = f"{client_id}:{client_secret}"
@@ -818,7 +819,7 @@ def callback():
     token_data = token_response.json()
     
     if 'access_token' not in token_data:
-        return redirect('http://127.0.0.1:3000?error=token_failed')
+         return redirect(f'{FRONTEND_URL}?error=token_failed')
     
     # Generate session ID for this user
     session_id = secrets.token_urlsafe(32)
@@ -828,7 +829,7 @@ def callback():
     }
     
     # Redirect back to React app
-    return redirect(f'http://127.0.0.1:3000?session={session_id}')
+    return redirect(f'{FRONTEND_URL}?session={session_id}')
 
 # MODIFIED: Submit route
 @app.route('/submit', methods=['POST'])
