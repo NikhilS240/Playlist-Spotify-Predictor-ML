@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
 
-// Add this line at the top to get the API URL
-const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? 'http://127.0.0.1:5000'  // Local development
-  : 'https://spotify-predictor.onrender.com';  // Production;
+// HARDCODED - Simple and direct
+const getAPIUrl = () => {
+  // Check if we're on Render's domain
+  if (window.location.href.includes('onrender.com')) {
+    return 'https://spotify-predictor.onrender.com';
+  }
+  // Otherwise we're local
+  return 'http://127.0.0.1:5000';
+};
 
 export default function Printer() {
   const [result, setResult] = useState('');
@@ -34,8 +39,9 @@ export default function Printer() {
   }, []);
 
   const handleSpotifyLogin = () => {
-    // CHANGED: Use API_URL instead of hardcoded localhost
-    window.location.href = `${API_URL}/login`;
+    const apiUrl = getAPIUrl();
+    alert('About to redirect to: ' + apiUrl + '/login'); // Debug alert
+    window.location.href = `${apiUrl}/login`;
   };
 
   return (
@@ -103,8 +109,9 @@ function MyForm({ setResult, setIsLoading, isLoading, sessionId }) {
     const formData = new FormData(form);
     const formJson = Object.fromEntries(formData.entries());
     
-    // CHANGED: Use API_URL instead of hardcoded localhost
-    fetch(`${API_URL}/submit`, {
+    const apiUrl = getAPIUrl();
+    
+    fetch(`${apiUrl}/submit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
