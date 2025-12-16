@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 
 // Add this line at the top to get the API URL
-const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
+const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://127.0.0.1:5000'  // Local development
+  : 'https://spotify-predictor.onrender.com';  // Production;
 
 export default function Printer() {
   const [result, setResult] = useState('');
