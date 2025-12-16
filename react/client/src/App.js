@@ -1,14 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 // HARDCODED - Simple and direct
-const getAPIUrl = () => {
-  // Check if we're on Render's domain
-  if (window.location.href.includes('onrender.com')) {
-    return 'https://spotify-predictor.onrender.com';
-  }
-  // Otherwise we're local
-  return 'http://127.0.0.1:5000';
-};
+const getAPIUrl = () => process.env.REACT_APP_API_URL;
 
 export default function Printer() {
   const [result, setResult] = useState('');
