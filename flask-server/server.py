@@ -780,6 +780,9 @@ def login():
     scope = 'playlist-read-private playlist-read-collaborative'
     state = secrets.token_urlsafe(16)
     
+    # ADDED DEBUG PRINT: Confirms the REDIRECT_URI used in the request to Spotify
+    print(f"DEBUG_LOGIN: Using REDIRECT_URI={REDIRECT_URI}")
+    
     auth_url = (
         'https://accounts.spotify.com/authorize?'
         f'response_type=code&'
@@ -797,11 +800,15 @@ def callback():
     code = request.args.get('code')
     
     if not code:
+        print("DEBUG_CALLBACK: No authorization code received (User denied or error)")
         return redirect(f'{FRONTEND_URL}?error=access_denied')
     
     # Exchange code for access token
     auth_string = f"{client_id}:{client_secret}"
     auth_base64 = base64.b64encode(auth_string.encode()).decode()
+    
+    # ADDED DEBUG PRINT: Confirms the REDIRECT_URI used in the POST to Spotify
+    print(f"DEBUG_CALLBACK: Using REDIRECT_URI={REDIRECT_URI} for token exchange.")
     
     token_response = requests.post(
         'https://accounts.spotify.com/api/token',
@@ -818,17 +825,26 @@ def callback():
     
     token_data = token_response.json()
     
-    if 'access_token' not in token_data:
-         return redirect(f'{FRONTEND_URL}?error=token_failed')
+    # 1. CATCH TOKEN EXCHANGE ERRORS (FATAL)
+    if 'error' in token_data:
+        print(f"FATAL SPOTIFY TOKEN ERROR: {token_data}")
+        return redirect(f'{FRONTEND_URL}?error=token_exchange_failed')
     
-    # Generate session ID for this user
+    # 2. CHECK FOR MISSING ACCESS TOKEN (LESS FATAL, but still an issue)
+    if 'access_token' not in token_data:
+        print("FATAL SPOTIFY TOKEN ERROR: Access token missing from response.")
+        return redirect(f'{FRONTEND_URL}?error=token_failed')
+    
+    # 3. CRITICAL STRUCTURAL FIX: GENERATE SESSION ID AND SAVE TOKEN HERE
     session_id = secrets.token_urlsafe(32)
     user_tokens[session_id] = {
         'access_token': token_data['access_token'],
         'refresh_token': token_data.get('refresh_token')
     }
     
-    # Redirect back to React app
+    # 4. REDIRECT THE USER
+    # The return statement must be the final action after all processing is done.
+    print(f"DEBUG_CALLBACK: Token acquired successfully. Redirecting to {FRONTEND_URL}")
     return redirect(f'{FRONTEND_URL}?session={session_id}')
 
 # MODIFIED: Submit route
