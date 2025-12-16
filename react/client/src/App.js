@@ -1,9 +1,17 @@
 import React, { useState, useEffect } from 'react';
 
 // Add this line at the top to get the API URL
-const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? 'http://127.0.0.1:5000'  // Local development
-  : 'https://spotify-predictor.onrender.com';  // Production;
+const handleSpotifyLogin = () => {
+  const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://127.0.0.1:5000'
+    : 'https://spotify-predictor.onrender.com';
+  
+  console.log('Hostname:', window.location.hostname);
+  console.log('API_URL:', API_URL);
+  console.log('Redirecting to:', `${API_URL}/login`);
+  
+  window.location.href = `${API_URL}/login`;
+};
 
 export default function Printer() {
   const [result, setResult] = useState('');
