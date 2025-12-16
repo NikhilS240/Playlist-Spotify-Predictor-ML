@@ -1,5 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
+
+// Add this line at the top to get the API URL
+const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
 
 export default function Printer() {
   const [result, setResult] = useState('');
@@ -30,7 +32,8 @@ export default function Printer() {
   }, []);
 
   const handleSpotifyLogin = () => {
-    window.location.href = 'http://127.0.0.1:5000/login';
+    // CHANGED: Use API_URL instead of hardcoded localhost
+    window.location.href = `${API_URL}/login`;
   };
 
   return (
@@ -98,7 +101,8 @@ function MyForm({ setResult, setIsLoading, isLoading, sessionId }) {
     const formData = new FormData(form);
     const formJson = Object.fromEntries(formData.entries());
     
-    fetch('http://127.0.0.1:5000/submit', {
+    // CHANGED: Use API_URL instead of hardcoded localhost
+    fetch(`${API_URL}/submit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
