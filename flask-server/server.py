@@ -94,14 +94,15 @@ def my_function(name, sp):  # CHANGED: Added sp parameter
             break
 
         for item in items:
-            track = item['track']
-            all_tracks.append(track)
+            track = item.get('track')
+            if track is not None:
+                all_tracks.append(track)
 
         sample_size = 45
         sampled_tracks = random.sample(all_tracks, min(sample_size, len(all_tracks)))
 
         for track in sampled_tracks:
-            if 'album' not in track:
+            if track is None or 'album' not in track:
                 continue
 
             index_of_genres = []
@@ -857,25 +858,27 @@ def callback():
 # MODIFIED: Submit route
 @app.route('/submit', methods=['POST'])
 def submit():
-    data = request.get_json()
-    
-    session_id = data.get('sessionId')
-    
-    if not session_id or session_id not in user_tokens:
-        return jsonify({'error': 'Not authenticated. Please connect Spotify first.'}), 401
-    
-    access_token = user_tokens[session_id]['access_token']
-    sp = spotipy.Spotify(auth=access_token)
-    
-    python_data = data['myInput']
-    print(python_data)
-    
-    result = my_function(python_data, sp)
-    
-    # Convert JSON string back to dict and return properly
-    import json
-    result_dict = json.loads(result)
-    return jsonify(result_dict)  
+    try:
+        data = request.get_json()
+        session_id = data.get('sessionId')
+        
+        if not session_id or session_id not in user_tokens:
+            return jsonify({
+                'error': 'Not authenticated',
+                'redirect': True  # Tell frontend to redirect to login
+            }), 401
+        
+        access_token = user_tokens[session_id]['access_token']
+        sp = spotipy.Spotify(auth=access_token)
+        python_data = data['myInput']
+        
+        result = my_function(python_data, sp)
+        result_dict = json.loads(result)
+        return jsonify(result_dict), 200
+        
+    except Exception as e:
+        print(f"ERROR in /submit: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 # if __name__ == '__main__':
 #     app.run(host='0.0.0.0', port=5000)
