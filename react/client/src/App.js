@@ -15,6 +15,7 @@ export default function Printer() {
     const error = params.get('error');
     
     if (session) {
+      console.log("Got session from URL:", session); // DEBUG
       setSessionId(session);
       setIsAuthenticated(true);
       localStorage.setItem('spotify_session', session);
@@ -25,6 +26,7 @@ export default function Printer() {
     } else {
       const savedSession = localStorage.getItem('spotify_session');
       if (savedSession) {
+        console.log("Got session from localStorage:", savedSession); // DEBUG
         setSessionId(savedSession);
         setIsAuthenticated(true);
       }
@@ -35,6 +37,13 @@ export default function Printer() {
     const apiUrl = getAPIUrl();
     alert('About to redirect to: ' + apiUrl + '/login'); // Debug alert
     window.location.href = `${apiUrl}/login`;
+  };
+
+  const handleLogout = () => {
+    setSessionId(null);
+    setIsAuthenticated(false);
+    localStorage.removeItem('spotify_session');
+    setResult('');
   };
 
   return (
@@ -53,11 +62,28 @@ export default function Printer() {
         </div>
       ) : (
         <>
+          <div style={{textAlign: 'center', marginBottom: '20px'}}>
+            <button 
+              onClick={handleLogout}
+              style={{
+                background: '#e74c3c',
+                color: 'white',
+                padding: '10px 20px',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: 'pointer'
+              }}
+            >
+              Disconnect Spotify
+            </button>
+          </div>
+          
           <MyForm 
             setResult={setResult} 
             setIsLoading={setIsLoading} 
             isLoading={isLoading}
             sessionId={sessionId}
+            setIsAuthenticated={setIsAuthenticated}
           />
           
           {isLoading && (
@@ -92,9 +118,20 @@ export default function Printer() {
   );
 }
 
-function MyForm({ setResult, setIsLoading, isLoading, sessionId }) {
+function MyForm({ setResult, setIsLoading, isLoading, sessionId, setIsAuthenticated }) {
   function handleSubmit(e) {
     e.preventDefault();
+    
+    // Check if we have a valid session
+    if (!sessionId) {
+      alert('Session expired. Please reconnect to Spotify.');
+      setIsAuthenticated(false);
+      localStorage.removeItem('spotify_session');
+      return;
+    }
+    
+    console.log("Submitting with sessionId:", sessionId); // DEBUG
+    
     setIsLoading(true);
     setResult('');
 
@@ -104,23 +141,39 @@ function MyForm({ setResult, setIsLoading, isLoading, sessionId }) {
     
     const apiUrl = getAPIUrl();
     
+    console.log("Sending to:", `${apiUrl}/submit`); // DEBUG
+    console.log("Form data:", formJson); // DEBUG
+    
     fetch(`${apiUrl}/submit`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({
         ...formJson,
-        sessionId: sessionId
+        sessionId: sessionId  // Send in body as backend expects
       }),
     })
-      .then(res => res.json())
+      .then(res => {
+        console.log("Response status:", res.status); // DEBUG
+        return res.json();
+      })
       .then(data => {
         console.log("Raw Flask response:", data);
         console.log("Type of data:", typeof data);
+        
+        if (data.error && data.error.includes('Not authenticated')) {
+          alert('Session expired. Please reconnect to Spotify.');
+          setIsAuthenticated(false);
+          localStorage.removeItem('spotify_session');
+          return;
+        }
         
         setResult(data);
         setIsLoading(false);
       })
       .catch(error => {
+        console.error("Fetch error:", error); // DEBUG
         setResult({ error: 'Error: ' + error.message });
         setIsLoading(false);
       });
