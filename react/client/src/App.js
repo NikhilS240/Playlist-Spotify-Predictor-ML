@@ -105,13 +105,13 @@ function MyForm({ setResult, setIsLoading, isLoading, sessionId }) {
     const apiUrl = getAPIUrl();
     
     fetch(`${apiUrl}/submit`, {
-  method: 'POST',
-  headers: { 
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${sessionId}`  // Add session to header!
-  },
-  body: JSON.stringify(formJson),  // Remove sessionId from body
-})
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...formJson,
+        sessionId: sessionId
+      }),
+    })
       .then(res => res.json())
       .then(data => {
         console.log("Raw Flask response:", data);
