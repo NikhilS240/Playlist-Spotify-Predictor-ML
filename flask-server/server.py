@@ -857,26 +857,25 @@ def callback():
 # MODIFIED: Submit route
 @app.route('/submit', methods=['POST'])
 def submit():
-    global returnRoute
     data = request.get_json()
     
-    # Check authentication
     session_id = data.get('sessionId')
     
     if not session_id or session_id not in user_tokens:
         return jsonify({'error': 'Not authenticated. Please connect Spotify first.'}), 401
     
-    # Create Spotify client with user's token
     access_token = user_tokens[session_id]['access_token']
     sp = spotipy.Spotify(auth=access_token)
     
     python_data = data['myInput']
     print(python_data)
     
-    # Pass sp to my_function
-    returnRoute = my_function(python_data, sp)
+    result = my_function(python_data, sp)
     
-    return returnRoute
+    # Convert JSON string back to dict and return properly
+    import json
+    result_dict = json.loads(result)
+    return jsonify(result_dict)  
 
 # if __name__ == '__main__':
 #     app.run(host='0.0.0.0', port=5000)
