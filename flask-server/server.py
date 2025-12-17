@@ -773,6 +773,13 @@ app = Flask(__name__)
 app.secret_key = secrets.token_urlsafe(32)
 CORS(app, supports_credentials=True, origins=[FRONTEND_URL])
 
+@app.after_request
+def after_request(response):
+    response.headers['Access-Control-Allow-Origin'] = FRONTEND_URL
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+    return response
+
 # NEW: Login route
 @app.route('/login')
 def login():
