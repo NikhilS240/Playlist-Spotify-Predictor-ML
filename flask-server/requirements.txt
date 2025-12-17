@@ -5,3 +5,4 @@ spotipy
 torch
 requests
 gunicorn
+numpy
