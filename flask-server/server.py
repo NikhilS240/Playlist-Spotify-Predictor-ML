@@ -26,6 +26,99 @@ from spotipy.exceptions import SpotifyException
 from collections import Counter
 import random 
 
+
+
+import psycopg2
+from psycopg2.extras import RealDictCursor
+from datetime import datetime, timedelta
+
+# Database connection
+DATABASE_URL = os.getenv('DATABASE_URL')
+
+def get_db():
+    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+    return conn
+
+# Create table on startup
+def init_db():
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS user_sessions (
+            session_id TEXT PRIMARY KEY,
+            access_token TEXT NOT NULL,
+            refresh_token TEXT,
+            expires_at TIMESTAMP NOT NULL,
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+    ''')
+    conn.commit()
+    cur.close()
+    conn.close()
+
+def refresh_spotify_token(refresh_token):
+    """Refresh an expired Spotify token"""
+    auth_string = f"{client_id}:{client_secret}"
+    auth_base64 = base64.b64encode(auth_string.encode()).decode()
+    
+    response = requests.post(
+        'https://accounts.spotify.com/api/token',
+        headers={
+            'Authorization': f'Basic {auth_base64}',
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        data={
+            'grant_type': 'refresh_token',
+            'refresh_token': refresh_token
+        }
+    )
+    
+    return response.json()
+
+def get_valid_token(session_id):
+    """Get token, refreshing if expired"""
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur.execute(
+        'SELECT access_token, refresh_token, expires_at FROM user_sessions WHERE session_id = %s',
+        (session_id,)
+    )
+    result = cur.fetchone()
+    cur.close()
+    
+    if not result:
+        conn.close()
+        return None
+    
+    # Check if token is expired
+    if datetime.now() >= result['expires_at']:
+        # Token expired, refresh it
+        token_data = refresh_spotify_token(result['refresh_token'])
+        
+        if 'access_token' in token_data:
+            new_access_token = token_data['access_token']
+            new_expires_at = datetime.now() + timedelta(seconds=token_data.get('expires_in', 3600))
+            
+            # Update database with new token
+            cur = conn.cursor()
+            cur.execute(
+                'UPDATE user_sessions SET access_token = %s, expires_at = %s WHERE session_id = %s',
+                (new_access_token, new_expires_at, session_id)
+            )
+            conn.commit()
+            cur.close()
+            conn.close()
+            
+            return new_access_token
+        else:
+            conn.close()
+            return None
+    
+    conn.close()
+    return result['access_token']
+
+
+
 artist_frequency = Counter()
 
 Running = True
@@ -41,7 +134,6 @@ client_secret = os.getenv("client_secret")
 # NEW: OAuth setup
 REDIRECT_URI = os.getenv('REDIRECT_URI', 'http://127.0.0.1:5000/callback')
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://127.0.0.1:3000')
-user_tokens = {}  # Store user tokens
 
 # REMOVED: Global sp client - now created per user
 # sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(
@@ -774,6 +866,8 @@ app = Flask(__name__)
 app.secret_key = secrets.token_urlsafe(32)
 CORS(app, supports_credentials=True, origins=[FRONTEND_URL])
 
+init_db()  
+
 @app.after_request
 def after_request(response):
     response.headers['Access-Control-Allow-Origin'] = FRONTEND_URL
@@ -804,18 +898,27 @@ def login():
 # NEW: Callback route
 @app.route('/callback')
 def callback():
+    # Clean up sessions older than 30 days
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        'DELETE FROM user_sessions WHERE created_at < NOW() - INTERVAL %s',
+        ('30 days',)
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
     """Handle Spotify callback and get user token"""
     code = request.args.get('code')
     
     if not code:
-        print("DEBUG_CALLBACK: No authorization code received (User denied or error)")
+        print("DEBUG_CALLBACK: No authorization code received")
         return redirect(f'{FRONTEND_URL}?error=access_denied')
     
     # Exchange code for access token
     auth_string = f"{client_id}:{client_secret}"
     auth_base64 = base64.b64encode(auth_string.encode()).decode()
     
-    # ADDED DEBUG PRINT: Confirms the REDIRECT_URI used in the POST to Spotify
     print(f"DEBUG_CALLBACK: Using REDIRECT_URI={REDIRECT_URI} for token exchange.")
     
     token_response = requests.post(
@@ -833,25 +936,28 @@ def callback():
     
     token_data = token_response.json()
     
-    # 1. CATCH TOKEN EXCHANGE ERRORS (FATAL)
     if 'error' in token_data:
         print(f"FATAL SPOTIFY TOKEN ERROR: {token_data}")
         return redirect(f'{FRONTEND_URL}?error=token_exchange_failed')
     
-    # 2. CHECK FOR MISSING ACCESS TOKEN (LESS FATAL, but still an issue)
     if 'access_token' not in token_data:
         print("FATAL SPOTIFY TOKEN ERROR: Access token missing from response.")
         return redirect(f'{FRONTEND_URL}?error=token_failed')
     
-    # 3. CRITICAL STRUCTURAL FIX: GENERATE SESSION ID AND SAVE TOKEN HERE
+    # Generate session and save to database
     session_id = secrets.token_urlsafe(32)
-    user_tokens[session_id] = {
-        'access_token': token_data['access_token'],
-        'refresh_token': token_data.get('refresh_token')
-    }
+    expires_at = datetime.now() + timedelta(seconds=token_data.get('expires_in', 3600))
     
-    # 4. REDIRECT THE USER
-    # The return statement must be the final action after all processing is done.
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        'INSERT INTO user_sessions (session_id, access_token, refresh_token, expires_at) VALUES (%s, %s, %s, %s)',
+        (session_id, token_data['access_token'], token_data.get('refresh_token'), expires_at)
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+    
     print(f"DEBUG_CALLBACK: Token acquired successfully. Redirecting to {FRONTEND_URL}")
     return redirect(f'{FRONTEND_URL}?session={session_id}')
 
@@ -862,13 +968,15 @@ def submit():
         data = request.get_json()
         session_id = data.get('sessionId')
         
-        if not session_id or session_id not in user_tokens:
-            return jsonify({
-                'error': 'Not authenticated',
-                'redirect': True  # Tell frontend to redirect to login
-            }), 401
+        if not session_id:
+            return jsonify({'error': 'No session provided', 'redirect': True}), 401
         
-        access_token = user_tokens[session_id]['access_token']
+        # Get valid token (automatically refreshes if expired)
+        access_token = get_valid_token(session_id)
+        
+        if not access_token:
+            return jsonify({'error': 'Not authenticated', 'redirect': True}), 401
+        
         sp = spotipy.Spotify(auth=access_token)
         python_data = data['myInput']
         
@@ -878,6 +986,8 @@ def submit():
         
     except Exception as e:
         print(f"ERROR in /submit: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 # if __name__ == '__main__':

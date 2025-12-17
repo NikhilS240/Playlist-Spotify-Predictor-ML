@@ -6,3 +6,4 @@ torch
 requests
 gunicorn
 numpy
+psycopg2-binary

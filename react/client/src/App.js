@@ -162,10 +162,11 @@ function MyForm({ setResult, setIsLoading, isLoading, sessionId, setIsAuthentica
         console.log("Raw Flask response:", data);
         console.log("Type of data:", typeof data);
         
-        if (data.error && data.error.includes('Not authenticated')) {
-          alert('Session expired. Please reconnect to Spotify.');
-          setIsAuthenticated(false);
+        if (data.error && data.redirect) {
+  // Session expired - automatically redirect to Spotify login
           localStorage.removeItem('spotify_session');
+          setIsAuthenticated(false);
+          window.location.href = `${apiUrl}/login`;
           return;
         }
         
