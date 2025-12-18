@@ -190,7 +190,7 @@ def my_function(name, sp):  # CHANGED: Added sp parameter
             if track is not None:
                 all_tracks.append(track)
 
-        sample_size = 45
+        sample_size = 20
         sampled_tracks = random.sample(all_tracks, min(sample_size, len(all_tracks)))
 
         for track in sampled_tracks:
@@ -414,13 +414,13 @@ def my_function(name, sp):  # CHANGED: Added sp parameter
 
   
 
-    train_loader = DataLoader(ds, batch_size=32, shuffle=True)
+    train_loader = DataLoader(ds, batch_size=8, shuffle=True)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
 
     # i need a loop for epoch # and then start training of training of 
-    num_epochs = 10
+    num_epochs = 3
 
     ##########
     for epoch in range(num_epochs):
