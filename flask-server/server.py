@@ -804,10 +804,18 @@ def my_function(name, sp):  # CHANGED: Added sp parameter
 
     d.sort(key=lambda x: x[0], reverse=True)
 
+# ADD THIS CHECK:
+    if not d or len(d) == 0:
+        return json.dumps({
+        "song": "No matching songs found",
+        "artist": artist_name or "Unknown",
+        "album": "Try a different playlist"
+    })
+
 
     # print(d)
 
-    num = random.randint(0, 2)
+    num = random.randint(0, min(2, len(d)-1)) if d else 0
     
 
     Song = True
