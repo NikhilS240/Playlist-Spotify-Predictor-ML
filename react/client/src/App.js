@@ -184,12 +184,12 @@ function MyForm({ setResult, setIsLoading, isLoading, sessionId, setIsAuthentica
     <form className="recommendation-form" onSubmit={handleSubmit}>
       <div className="form-group">
         <label className="form-label">
-          Spotify Playlist URL:
+          Spotify Playlist ID:
         </label>
         <input 
           className="form-input"
           name="myInput" 
-          placeholder="https://open.spotify.com/playlist/..."
+          placeholder="AFHIWBHdhruSJKAN..."
           required
           disabled={isLoading}
         />
