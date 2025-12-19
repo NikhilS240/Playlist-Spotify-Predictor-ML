@@ -148,6 +148,7 @@ def my_function(name, sp):  # CHANGED: Added sp parameter
     offset = 0
     limit = 100
     count = 0
+    max_tracks = 50
 
     list_of_genres = []
     list_of_artists = []
@@ -162,6 +163,10 @@ def my_function(name, sp):  # CHANGED: Added sp parameter
   
 
     while True:
+
+        if count >= max_tracks:  # NEW - stop early
+            break
+    
 
 
         try:
@@ -190,7 +195,7 @@ def my_function(name, sp):  # CHANGED: Added sp parameter
             if track is not None:
                 all_tracks.append(track)
 
-        sample_size = 20
+        sample_size = 5
         sampled_tracks = random.sample(all_tracks, min(sample_size, len(all_tracks)))
 
         for track in sampled_tracks:
