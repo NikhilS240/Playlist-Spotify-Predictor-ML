@@ -148,7 +148,7 @@ def my_function(name, sp):  # CHANGED: Added sp parameter
     offset = 0
     limit = 100
     count = 0
-    max_tracks = 50
+    max_tracks = 25
 
     list_of_genres = []
     list_of_artists = []
@@ -195,7 +195,7 @@ def my_function(name, sp):  # CHANGED: Added sp parameter
             if track is not None:
                 all_tracks.append(track)
 
-        sample_size = 5
+        sample_size = 3
         sampled_tracks = random.sample(all_tracks, min(sample_size, len(all_tracks)))
 
         for track in sampled_tracks:
@@ -717,6 +717,7 @@ def my_function(name, sp):  # CHANGED: Added sp parameter
                 matched_albums.append(album)
 
         if matched_albums:
+            matched_albums = matched_albums[:1]
             for name in matched_albums:
 
 
@@ -752,7 +753,7 @@ def my_function(name, sp):  # CHANGED: Added sp parameter
             if album_search['albums']['items']:
                 album = album_search['albums']['items'][0]
                 album_id = album['id']
-                tracks = sp.album_tracks(album_id)['items']
+                tracks = sp.album_tracks(album_id)['items'][:10]
                 
                 for track in tracks:
                     album_songs.append(track['name'])
